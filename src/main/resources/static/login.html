@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 - kb-agent-lite</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg-0:#123a64; --bg-1:#1a4d83; --bg-2:#22679f;
+  --cyan:#22d3ee; --cyan-soft:#5cc8f5; --teal:#2dd4bf; --indigo:#7c83f5;
+  --text:#eaf2fb; --text-dim:#aebfce; --text-faint:#7e95b0;
+  --border:rgba(140,185,225,.30); --border-strong:rgba(56,189,248,.55);
+  --panel:rgba(18,44,76,.50); --radius:14px; --radius-sm:9px;
+}
+html, body { height: 100%; }
+body {
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", -apple-system, sans-serif;
+  color: var(--text);
+  /* background:
+    radial-gradient(1100px 600px at 82% -12%, rgba(0,212,255,.14), transparent 60%),
+    radial-gradient(900px 520px at 8% 112%, rgba(99,102,241,.14), transparent 55%),
+    linear-gradient(160deg, var(--bg-0), var(--bg-1) 55%, var(--bg-2)); */
+    background: url(/assets/login_bg.jpg) no-repeat center center fixed;
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; position: relative;
+}
+/* 科技网格 */
+body::before {
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(86,130,184,.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(86,130,184,.06) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 28%, transparent 78%);
+  mask-image: radial-gradient(circle at 50% 42%, #000 28%, transparent 78%);
+}
+/* 漂浮光点 */
+body::after {
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.7;
+  background:
+    radial-gradient(2px 2px at 20% 30%, rgba(0,212,255,.6), transparent),
+    radial-gradient(2px 2px at 70% 60%, rgba(0,199,167,.5), transparent),
+    radial-gradient(1.5px 1.5px at 45% 80%, rgba(99,102,241,.5), transparent),
+    radial-gradient(1.5px 1.5px at 85% 20%, rgba(0,212,255,.4), transparent);
+  animation: floatUp 18s linear infinite;
+}
+@keyframes floatUp { from { transform: translateY(0); } to { transform: translateY(-40px); } }
+
+.login-wrap {
+  position: relative; z-index: 2; padding: 20px;
+  border-radius: 22px; background: var(--panel);
+  backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 24px 70px rgba(0,12,40,.55), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.login-box {
+  background: #2b7bc9; border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 38px 34px; width: 384px; max-width: 86vw;
+  position: relative; overflow: hidden;
+}
+.login-box::before {
+  content:""; position:absolute; top:-40%; left:-10%; width:120%; height:90px;
+  background: radial-gradient(closest-side, rgba(34,211,238,.22), transparent);
+  filter: blur(22px);
+}
+.title {
+  font-size: 20px; font-weight: 700; text-align:center; margin-bottom: 8px;
+  color: #fff; display:flex; align-items:center; justify-content:center; gap:10px; position: relative;
+}
+.title svg { width: 22px; height:22px; color: var(--cyan); filter: drop-shadow(0 0 6px rgba(0,212,255,.6)); }
+.title .net { color: var(--teal); filter: drop-shadow(0 0 6px rgba(0,199,167,.6)); }
+.sub { font-size:12px; color: var(--text-dim); text-align:center; margin-bottom: 26px; letter-spacing:.5px; }
+
+.form-item { margin-bottom: 18px; }
+.form-item label { display:block; font-size:13px; color: var(--text-dim); margin-bottom:7px; }
+.form-item input {
+  width:100%; padding:12px 14px; border:1px solid var(--border);
+  border-radius: var(--radius-sm); font-size:14px; outline:none;
+  color: var(--text); font-family: inherit; transition: all .2s;
+  background: rgba(2,18,32,.45); caret-color: var(--cyan);
+}
+.form-item input::placeholder { color: var(--text-faint); }
+.form-item input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(0,212,255,.16), 0 0 18px rgba(0,212,255,.18);
+}
+
+.btn {
+  width:100%; padding:12px; border:none; border-radius: var(--radius-sm); cursor:pointer;
+  background: linear-gradient(135deg, #0ea5e9, var(--cyan) 60%, var(--teal));
+  color:#031018; font-size:15px; font-weight:700; letter-spacing:2px; margin-top:6px;
+  transition: all .22s; position:relative; overflow:hidden;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,212,255,.4); }
+.btn:active { transform: translateY(0); }
+
+.msg { color:#f87171; font-size:13px; text-align:center; min-height:20px; margin-top:10px; }
+.nav { margin-top:16px; font-size:13px; text-align:center; color: var(--text-dim); }
+.nav a { color: var(--cyan-soft); text-decoration:none; margin:0 6px; transition: color .2s; }
+.nav a:hover { color: var(--cyan); text-shadow: 0 0 8px rgba(0,212,255,.5); }
+</style>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-box">
+      <h1 class="title">
+        <!-- 左侧盾牌图标 -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+        知识库问答智能体
+        <!-- 右侧网络节点图标 -->
+        <svg class="net" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="2"/>
+          <circle cx="19" cy="5" r="2"/>
+          <circle cx="5" cy="19" r="2"/>
+          <circle cx="19" cy="19" r="2"/>
+          <circle cx="5" cy="5" r="2"/>
+          <line x1="12" y1="12" x2="19" y2="5"/>
+          <line x1="12" y1="12" x2="5" y2="19"/>
+          <line x1="12" y1="12" x2="19" y2="19"/>
+          <line x1="12" y1="12" x2="5" y2="5"/>
+        </svg>
+      </h1>
+      <p class="sub">kb-agent-lite · 单机轻量部署</p>
+
+      <div class="form-item">
+        <label>访问口令</label>
+        <input type="password" id="password" placeholder="请输入访问口令" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+
+      <button class="btn" onclick="doLogin()">登 录</button>
+      <div class="msg" id="msg"></div>
+
+      <div class="nav">
+        <a href="chat.html">对话</a>·<a href="knowledge.html">知识库管理</a>
+      </div>
+    </div>
+  </div>
+
+<script>
+const msg = document.getElementById('msg');
+function doLogin() {
+  const password = document.getElementById('password').value.trim();
+  if (!password) { msg.textContent = '请输入口令'; return; }
+  fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.code === 0) {
+      localStorage.setItem('kb_token', res.data.token);
+      location.href = 'chat.html';
+    } else {
+      msg.textContent = res.msg || '登录失败';
+    }
+  })
+  .catch(() => msg.textContent = '网络异常，请确认服务已启动');
+}
+// 已有 token 直接跳转
+if (localStorage.getItem('kb_token')) {
+  location.href = 'chat.html';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: kb-agent-lite
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 200MB
+  datasource:
+    driver-class-name: org.h2.Driver
+    # 内嵌 H2 文件库（MODE=MySQL 兼容），数据文件落在 app.data-dir 下，随目录整体备份/迁移
+    url: jdbc:h2:file:${app.data-dir:./data}/h2/kblite;MODE=MySQL;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    username: sa
+    password: ""
+  sql:
+    init:
+      # schema.sql 全部为 IF NOT EXISTS / WHERE NOT EXISTS，重复执行安全
+      mode: always
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+
+app:
+  # 运行时数据目录（H2 库 / 上传的原始文件 / 向量持久化文件），默认相对启动目录
+  data-dir: ${KB_DATA_DIR:./data}
+  auth:
+    # 是否开启口令鉴权（内网裸奔可设 false）
+    enabled: ${KB_AUTH_ENABLED:true}
+    # 访问口令，务必通过环境变量覆盖默认值
+    password: ${KB_AUTH_PASSWORD:admin123}
+    # HMAC 签名密钥，修改后已签发的 token 全部失效
+    token-secret: ${KB_TOKEN_SECRET:kb-lite-default-secret-please-change}
+    # token 有效期（小时）
+    token-expire-hours: 72
+
+# ==================== LLM 模型接入（OpenAI 兼容协议，标准接入入口） ====================
+# 公有云示例：
+#   DeepSeek:  base-url: https://api.deepseek.com/v1        model: deepseek-chat
+#   通义百炼:   base-url: https://dashscope.aliyuncs.com/compatible-mode/v1  model: qwen-plus
+#   智谱:       base-url: https://open.bigmodel.cn/api/paas/v4  model: glm-4-air
+# 私有化示例（任一 OpenAI 兼容推理框架）：
+#   vLLM:      base-url: http://<host>:8000/v1              model: <部署的模型名>
+#   Ollama:    base-url: http://<host>:11434/v1             model: qwen2.5:14b
+llm:
+  base-url: ${LLM_BASE_URL:https://api.deepseek.com/v1}
+  api-key: ${LLM_API_KEY:}
+  model-name: ${LLM_MODEL:deepseek-chat}
+  temperature: 0.2
+  max-tokens: 4000
+  timeout-seconds: 60
+
+knowledge:
+  chunk:
+    # 切分块大小（字符）。bge-small-zh-v1.5 输入上限 512 token（中文≈1字1token），
+    # 块大小必须 ≤450 字符左右，否则块尾部会被截断导致检索漏召回
+    size: 450
+    overlap: 80
+  batch:
+    size: 50
+  rag:
+    # 相似度阈值（内嵌向量库 relevance 标度 0~1，(cos+1)/2），
+    # 值过高召回不足、过低混入无关内容，可结合测试页展示的分数调整
+    min-score: 0.5
+    # 粗召回扩展倍数（召回 limit*factor 条 → 阈值过滤 → 去重 → 取 top limit）
+    recall-expand-factor: 5
+
+logging:
+  level:
+    com.kblite: info

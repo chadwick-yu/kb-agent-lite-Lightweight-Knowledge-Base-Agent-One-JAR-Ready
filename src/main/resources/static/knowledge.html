@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kb-agent-lite 知识库管理</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* 全局滚动条美化 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,.05); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(64, 158, 255, 0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(64, 158, 255, 0.5); }
+
+body { 
+  font-family: "Microsoft YaHei", -apple-system, sans-serif; 
+  background: url('assets/knowledge_bg.jpg') center/cover no-repeat fixed; 
+  color: #333;
+}
+
+/* 顶部导航栏 */
+.topbar {
+  background: linear-gradient(135deg, #337ecc, #409EFF); 
+  color: #fff;
+  padding: 12px 24px; 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,.1);
+  position: sticky; 
+  top: 0; 
+  z-index: 50;
+}
+.topbar .title { 
+  font-size: 16px; 
+  font-weight: bold; 
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar .title svg { width: 18px; height: 18px; }
+.topbar a { 
+  color: rgba(255,255,255,.85); 
+  font-size: 13px; 
+  text-decoration: none; 
+  margin-left: 16px; 
+  transition: color .2s;
+}
+.topbar a:hover { color: #fff; }
+
+.container { 
+  max-width: 1200px; 
+  margin: 20px auto; 
+  padding: 0 16px; 
+}
+
+/* 玻璃态卡片 */
+.card {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 10px; 
+  padding: 20px; 
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  transition: box-shadow .2s;
+}
+.card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+
+/* 模块标题 */
+.card h2 { 
+  font-size: 15px; 
+  color: #337ecc; 
+  margin-bottom: 16px; 
+  padding-left: 10px;
+  border-left: 3px solid #409EFF; 
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.card h2 svg { width: 16px; height: 16px; color: #409EFF; }
+
+.row { 
+  display: flex; 
+  gap: 10px; 
+  flex-wrap: wrap; 
+  align-items: center; 
+  margin-bottom: 12px; 
+}
+
+/* 表单控件 */
+select, input[type=text], input[type=number] {
+  padding: 8px 12px; 
+  border: 1px solid #dce3ec; 
+  border-radius: 6px; 
+  font-size: 13px; 
+  outline: none;
+  background: rgba(255,255,255,.9);
+  transition: all .2s;
+  font-family: inherit;
+}
+select:focus, input[type=text]:focus, input[type=number]:focus {
+  border-color: #409EFF;
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.12);
+}
+/* WebKit select 自带内部缩进，减小左 padding 使文字与输入框左对齐；右侧留出下拉箭头位置 */
+select { padding-left: 7px; padding-right: 40px; }
+
+/* 按钮统一样式 */
+.btn {
+  padding: 8px 16px; 
+  border: none; 
+  border-radius: 6px; 
+  cursor: pointer; 
+  font-size: 13px;
+  background: #409EFF; 
+  color: #fff; 
+  transition: all .2s;
+  font-family: inherit;
+}
+.btn:hover { opacity: .95; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(64, 158, 255, 0.28); }
+.btn:active { transform: translateY(0); }
+.btn.gray { background: #95a5a6; }
+.btn.gray:hover { box-shadow: 0 2px 6px rgba(149, 165, 166, 0.2); }
+/* 白底描边按钮：用于重置/分页等次要操作，避免实心灰被误认为禁用 */
+.btn.outline {
+  background: #fff;
+  color: #409EFF;
+  border: 1px solid #c6e2ff;
+}
+.btn.outline:hover {
+  background: #ecf5ff;
+  border-color: #409EFF;
+  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.2);
+}
+.btn.outline:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn.red { background: #e74c3c; }
+.btn.red:hover { box-shadow: 0 2px 6px rgba(231, 76, 60, 0.2); }
+.btn.green { background: #27ae60; }
+.btn.green:hover { box-shadow: 0 2px 6px rgba(39, 174, 96, 0.2); }
+.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* 文件上传按钮美化 */
+.file-upload {
+  position: relative;
+  display: inline-block;
+}
+.file-upload input[type=file] {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.file-upload label {
+  display: inline-block;
+  padding: 8px 14px;
+  background: #f0f9ff;
+  color: #409EFF;
+  border: 1px solid #d9ecff;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.file-upload label:hover { background: #e6f2ff; border-color: #409EFF; }
+
+/* 已选文件列表 */
+.file-list {
+  margin: 4px 0 12px;
+  border: 1px solid #dce3ec;
+  border-radius: 6px;
+  background: rgba(255,255,255,.75);
+  overflow: hidden;
+}
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid #eef1f6;
+}
+.file-item:last-child { border-bottom: none; }
+.file-item .f-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #333;
+}
+.file-item .f-size { color: #999; font-size: 12px; flex-shrink: 0; }
+.file-item .f-remove {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #e74c3c;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.file-item .f-remove:hover { background: #fff1f0; }
+
+/* 分类列表 - 固定最大高度+滚动 */
+.category-list {
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+  border: 1px solid #eef1f6;
+  border-radius: 6px;
+  background: rgba(255,255,255,.55);
+}
+.category-list::-webkit-scrollbar { width: 6px; }
+.category-list::-webkit-scrollbar-track { background: rgba(0,0,0,.04); border-radius: 3px; }
+.category-list::-webkit-scrollbar-thumb { background: rgba(64, 158, 255, 0.35); border-radius: 3px; }
+.category-list::-webkit-scrollbar-thumb:hover { background: rgba(64, 158, 255, 0.55); }
+.category-list .empty { padding: 20px 0; }
+.cat-item {
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
+  padding: 8px 10px; 
+  border-radius: 6px; 
+  font-size: 13px;
+  transition: background .2s;
+}
+.cat-item:hover { background: rgba(64, 158, 255, 0.06); }
+.cat-item .ops a {
+  text-decoration: none;
+  margin-left: 8px;
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 4px;
+  transition: background .2s;
+}
+.cat-item .ops a img { width: 14px; height: 14px; display: block; transition: transform .15s; }
+.cat-item .ops a:hover { background: rgba(64, 158, 255, 0.12); }
+.cat-item .ops a:hover img { transform: scale(1.15); }
+
+#uploadProgress { 
+  font-size: 12px; 
+  color: #666; 
+  margin-left: 10px; 
+}
+
+.tip-text {
+  font-size: 12px;
+  color: #888;
+  line-height: 1.6;
+}
+
+/* 表格 */
+table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  font-size: 13px; 
+}
+th, td { 
+  padding: 10px 8px; 
+  border-bottom: 1px solid #f0f2f5; 
+  text-align: left; 
+}
+th { 
+  color: #555; 
+  font-weight: 600; 
+  background: rgba(240, 244, 250, 0.8); 
+}
+tbody tr { transition: background .2s; }
+tbody tr:hover { background: rgba(64, 158, 255, 0.05); }
+
+/* 状态标签 */
+.tag { 
+  display: inline-block; 
+  padding: 3px 10px; 
+  border-radius: 12px; 
+  font-size: 12px; 
+  font-weight: 500;
+}
+.tag.s0 { background: #f0f2f5; color: #666; }
+.tag.s1 { background: #fff7e6; color: #d48806; }
+.tag.s2 { background: #e6f7ee; color: #27ae60; }
+.tag.s3 { background: #fff1f0; color: #e74c3c; }
+
+/* 分页 */
+.pager { 
+  margin-top: 16px; 
+  display: flex; 
+  gap: 10px; 
+  align-items: center; 
+  justify-content: flex-end;
+  font-size: 13px; 
+  color: #666; 
+}
+
+/* 空状态 */
+.empty { 
+  text-align: center; 
+  color: #aaa; 
+  padding: 30px 0; 
+  font-size: 13px; 
+}
+
+/* 提示弹窗 - 浅色底 + 彩色图标 + 深色文字 + 关闭按钮 */
+.toast {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #303133;
+  z-index: 99;
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  max-width: 480px;
+  animation: toastIn .22s ease-out;
+}
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.toast .t-icon { width: 16px; height: 16px; flex-shrink: 0; display: flex; }
+.toast .t-icon svg { width: 100%; height: 100%; display: block; }
+.toast .t-close {
+  margin-left: 10px;
+  cursor: pointer;
+  color: #909399;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color .2s;
+}
+.toast .t-close:hover { color: #606266; }
+.toast.success { background: #f0f9eb; }  /* 绿色系 */
+.toast.error   { background: #fef0f0; }  /* 红色系 */
+.toast.info    { background: #f4f4f5; }  /* 灰色系 - 普通提示 */
+
+/* 确认弹窗 */
+.modal-mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 100;
+  display: none; align-items: center; justify-content: center;
+}
+.modal-mask.show { display: flex; }
+.modal {
+  background: #fff; border-radius: 10px; width: 360px; padding: 24px 22px 18px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.25);
+  animation: modalIn .18s ease-out;
+}
+@keyframes modalIn { from { transform: scale(.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.modal .m-title { font-size: 15px; font-weight: bold; color: #333; margin-bottom: 10px; }
+.modal .m-body { font-size: 13px; color: #666; line-height: 1.7; margin-bottom: 20px; }
+.modal .m-btns { display: flex; gap: 10px; justify-content: flex-end; }
+.modal .m-btns button { padding: 8px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-family: inherit; }
+.modal .m-cancel { background: #f0f2f5; color: #666; transition: background .2s; }
+.modal .m-cancel:hover { background: #e4e7ec; }
+.modal .m-ok { background: #409EFF; color: #fff; transition: all .2s; }
+.modal .m-ok:hover { background: #66b1ff; }
+.modal .m-ok.danger { background: #e74c3c; }
+.modal .m-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #dce3ec;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  background: rgba(255,255,255,.9);
+  font-family: inherit;
+  margin-bottom: 20px;
+  transition: all .2s;
+}
+.modal .m-input:focus { border-color: #409EFF; box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.12); }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="title">
+    <!-- AI 知识库图标：数据库 + 智能星火 -->
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="10.5" cy="5.5" rx="6.5" ry="2.8"/>
+      <path d="M4 5.5v6c0 1.55 2.9 2.8 6.5 2.8s6.5-1.25 6.5-2.8v-6"/>
+      <path d="M4 11.5v6c0 1.55 2.9 2.8 6.5 2.8s6.5-1.25 6.5-2.8v-6"/>
+      <path d="M19 2.2l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8z" fill="currentColor" stroke="none"/>
+    </svg>
+    kb-agent-lite 知识库管理
+  </div>
+  <div>
+    <a href="chat.html">对话</a>
+    <a href="knowledge.html">知识库</a>
+    <a href="login.html" onclick="localStorage.removeItem('kb_token')">退出</a>
+  </div>
+</div>
+
+<div class="container">
+  <!-- 文档上传模块 -->
+  <div class="card">
+    <h2>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      文档上传
+    </h2>
+    <div class="row">
+      <select id="uploadCategory">
+        <option value="">请选择分类（可选）</option>
+      </select>
+      <input type="text" id="uploadTags" placeholder="标签，多个用逗号分隔（可选）" style="width:220px">
+
+      <div class="file-upload">
+        <label for="fileInput">选择文件</label>
+        <input type="file" id="fileInput" multiple
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.md,.txt,.rtf">
+      </div>
+      <span id="fileTip" style="font-size:12px; color:#888;">未选择文件，可多次选择追加</span>
+    </div>
+    <!-- 已选文件列表 -->
+    <div id="fileList" class="file-list" style="display:none"></div>
+    <!-- 上传操作行：位于文件列表下方 -->
+    <div class="row" id="uploadActionRow" style="margin-bottom:4px;">
+      <button class="btn" id="uploadBtn" onclick="upload()">上传并向量化</button>
+      <span id="uploadProgress"></span>
+    </div>
+    <div class="tip-text">
+      支持 PDF / Word / Excel / PPT / Markdown / TXT / RTF 格式，单文件大小不超过 50MB，单次最多上传 3 个文件，上传后将自动进行后台向量化处理
+    </div>
+  </div>
+
+  <!-- 分类管理模块 -->
+  <div class="card">
+    <h2>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      </svg>
+      分类管理
+    </h2>
+    <div class="row">
+      <input type="text" id="catName" placeholder="分类名称" style="width:160px">
+      <input type="text" id="catCode" placeholder="分类编码（留空自动生成）" style="width:180px">
+      <button class="btn green" onclick="addCategory()">新增分类</button>
+    </div>
+    <div id="categoryList" class="category-list"></div>
+  </div>
+
+  <!-- 文档列表模块 -->
+  <div class="card">
+    <h2>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="8" y1="6" x2="21" y2="6"/>
+        <line x1="8" y1="12" x2="21" y2="12"/>
+        <line x1="8" y1="18" x2="21" y2="18"/>
+        <line x1="3" y1="6" x2="3.01" y2="6"/>
+        <line x1="3" y1="12" x2="3.01" y2="12"/>
+        <line x1="3" y1="18" x2="3.01" y2="18"/>
+      </svg>
+      文档列表
+    </h2>
+    <div class="row">
+      <select id="filterCategory" onchange="loadDocs(1)">
+        <option value="">全部分类</option>
+      </select>
+      <select id="filterStatus" onchange="loadDocs(1)">
+        <option value="">全部状态</option>
+        <option value="1">处理中</option>
+        <option value="2">成功</option>
+        <option value="3">失败</option>
+      </select>
+      <input type="text" id="keyword" placeholder="标题/文件名关键字" style="width:200px" onkeydown="if(event.key==='Enter')loadDocs(1)">
+      <button class="btn" onclick="loadDocs(1)">查询</button>
+      <button class="btn outline" onclick="resetFilters()">重置</button>
+      <button class="btn red" onclick="batchDelete()">删除选中</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:32px"><input type="checkbox" id="checkAll" onchange="toggleAll(this)"></th>
+          <th>标题/文件名</th>
+          <th>分类</th>
+          <th>大小</th>
+          <th>向量化状态</th>
+          <th>向量数</th>
+          <th>上传时间</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="docTbody"></tbody>
+    </table>
+    <div class="pager" id="pager"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <span class="t-icon" id="toastIcon"></span>
+  <span id="toastMsg"></span>
+  <span class="t-close" onclick="hideToast()">✕</span>
+</div>
+
+<!-- 确认弹窗 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <div class="m-title" id="modalTitle">提示</div>
+    <div class="m-body" id="modalBody"></div>
+    <input type="text" id="modalInput" class="m-input" style="display:none">
+    <div class="m-btns">
+      <button class="m-cancel" id="modalCancel">取消</button>
+      <button class="m-ok" id="modalOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('kb_token');
+if (!TOKEN) { location.href = 'login.html'; }
+
+// 文件选择提示 + 已选文件列表渲染
+const MAX_UPLOAD_FILES = 3;  // 单次最多上传文件数
+let selectedFiles = [];
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  // 追加模式：多次选择累加，按 文件名+大小 去重，最多 MAX_UPLOAD_FILES 个
+  for (const f of e.target.files) {
+    if (selectedFiles.some(s => s.name === f.name && s.size === f.size)) continue;
+    if (selectedFiles.length >= MAX_UPLOAD_FILES) {
+      toast(`一次最多上传 ${MAX_UPLOAD_FILES} 个文件，请先上传已选文件`, 'error');
+      break;
+    }
+    selectedFiles.push(f);
+  }
+  e.target.value = ''; // 清空 input，确保再次选择同一文件也能触发 change
+  renderFileList();
+});
+
+function renderFileList() {
+  const listEl = document.getElementById('fileList');
+  const tip = document.getElementById('fileTip');
+  if (!selectedFiles.length) {
+    listEl.style.display = 'none';
+    listEl.innerHTML = '';
+    tip.textContent = '未选择文件，可多次选择追加';
+    return;
+  }
+  tip.textContent = `已选择 ${selectedFiles.length} 个文件`;
+  listEl.style.display = 'block';
+  listEl.innerHTML = selectedFiles.map((f, i) => `
+    <div class="file-item">
+      <span class="f-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>
+      <span class="f-size">${formatFileSize(f.size)}</span>
+      <button class="f-remove" title="移除" onclick="removeSelectedFile(${i})">✕</button>
+    </div>`).join('');
+}
+
+function removeSelectedFile(index) {
+  selectedFiles.splice(index, 1);
+  // 同步回 fileInput，保证上传时取到的是列表剩余文件
+  const dt = new DataTransfer();
+  selectedFiles.forEach(f => dt.items.add(f));
+  document.getElementById('fileInput').files = dt.files;
+  renderFileList();
+}
+
+function formatFileSize(bytes) {
+  if (!bytes && bytes !== 0) return '-';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+let toastTimer = null;
+const TOAST_ICONS = {
+  success: '<svg viewBox="0 0 24 24" fill="none" stroke="#67c23a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5" fill="#67c23a" stroke="none"/><path d="M8 12.5l2.6 2.6L16 9.5" stroke="#fff"/></svg>',
+  error:   '<svg viewBox="0 0 24 24" fill="none" stroke="#f56c6c" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9.5" fill="#f56c6c" stroke="none"/><path d="M9 9l6 6M15 9l-6 6" stroke="#fff"/></svg>',
+  info:    '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9.5" fill="#909399"/><path d="M12 11v5.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="7.6" r="1.4" fill="#fff"/></svg>'
+};
+// type: 'success' 绿色 | 'error' 红色 | 不传为灰色普通提示
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  const iconType = (type === 'success' || type === 'error') ? type : 'info';
+  t.className = 'toast ' + (iconType === 'info' ? 'info' : iconType);
+  document.getElementById('toastIcon').innerHTML = TOAST_ICONS[iconType];
+  t.style.display = 'flex';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 2500);
+}
+function hideToast() {
+  clearTimeout(toastTimer);
+  document.getElementById('toast').style.display = 'none';
+}
+
+// 自定义弹窗（替代浏览器原生 confirm / prompt）
+// options: { title, body, okText, danger, input: {value, placeholder} } 带 input 时为输入弹窗，onOk 回调接收输入值
+function showConfirm(options, onOk) {
+  const mask = document.getElementById('modalMask');
+  document.getElementById('modalTitle').textContent = options.title || '提示';
+  document.getElementById('modalBody').textContent = options.body || '';
+  const okBtn = document.getElementById('modalOk');
+  okBtn.textContent = options.okText || '确定';
+  okBtn.classList.toggle('danger', !!options.danger);
+
+  // 输入框模式（替代原生 prompt）
+  const inputEl = document.getElementById('modalInput');
+  const hasInput = !!options.input;
+  inputEl.style.display = hasInput ? 'block' : 'none';
+  if (hasInput) {
+    inputEl.value = options.input.value || '';
+    inputEl.placeholder = options.input.placeholder || '请输入内容';
+  }
+  mask.classList.add('show');
+  if (hasInput) { setTimeout(() => { inputEl.focus(); inputEl.select(); }, 50); }
+
+  const okHandler = () => {
+    if (hasInput && !inputEl.value.trim()) { inputEl.focus(); return; }
+    const val = hasInput ? inputEl.value.trim() : undefined;
+    cleanup();
+    onOk && onOk(val);
+  };
+  const cancelHandler = () => cleanup();
+  const maskHandler = e => { if (e.target === mask) cleanup(); };
+  const inputKeyHandler = e => {
+    if (e.key === 'Enter') { e.preventDefault(); okHandler(); }
+    if (e.key === 'Escape') { e.preventDefault(); cleanup(); }
+  };
+  function cleanup() {
+    mask.classList.remove('show');
+    okBtn.removeEventListener('click', okHandler);
+    document.getElementById('modalCancel').removeEventListener('click', cancelHandler);
+    mask.removeEventListener('click', maskHandler);
+    inputEl.removeEventListener('keydown', inputKeyHandler);
+  }
+  okBtn.addEventListener('click', okHandler);
+  document.getElementById('modalCancel').addEventListener('click', cancelHandler);
+  mask.addEventListener('click', maskHandler);
+  if (hasInput) inputEl.addEventListener('keydown', inputKeyHandler);
+}
+
+function api(path, options = {}) {
+  options.headers = Object.assign({ 'Authorization': 'Bearer ' + TOKEN }, options.headers);
+  if (options.body && !(options.body instanceof FormData)) {
+    options.headers['Content-Type'] = 'application/json';
+  }
+  return fetch(path, options).then(async r => {
+    if (r.status === 401) { 
+      localStorage.removeItem('kb_token'); 
+      location.href = 'login.html'; 
+      throw new Error('未登录'); 
+    }
+    const res = await r.json();
+    if (res.code !== 0) throw new Error(res.msg || '请求失败');
+    return res.data;
+  });
+}
+
+// ========== 分类管理 ==========
+async function loadCategories() {
+  const list = await api('/api/knowledge/category/list');
+  const opts = list.map(c => `<option value="${c.id}">${c.categoryName}（${c.documentCount} 篇）</option>`).join('');
+  
+  document.getElementById('uploadCategory').innerHTML = '<option value="">请选择分类（可选）</option>' + opts;
+  document.getElementById('filterCategory').innerHTML = '<option value="">全部分类</option>' + opts;
+  
+  document.getElementById('categoryList').innerHTML = list.length 
+    ? list.map(c => `
+      <div class="cat-item">
+        <span>
+          ${c.categoryName} 
+          <span style="color:#aaa">[${c.categoryCode}]</span>
+          <span style="color:#409EFF; margin-left: 6px;">${c.documentCount} 篇</span>
+        </span>
+        <span class="ops">
+          <a href="javascript:renameCategory(${c.id},'${c.categoryName}')" title="改名"><img src="assets/edit.png" alt="改名"></a>
+          <a class="del" href="javascript:delCategory(${c.id},'${c.categoryName}')" title="删除"><img src="assets/del.png" alt="删除"></a>
+        </span>
+      </div>`).join('') 
+    : '<div class="empty">还没有创建分类，也可以不选分类直接上传文档</div>';
+}
+
+async function addCategory() {
+  const categoryName = document.getElementById('catName').value.trim();
+  if (!categoryName) return toast('请输入分类名称');
+  
+  await api('/api/knowledge/category', {
+    method: 'POST',
+    body: JSON.stringify({ 
+      categoryName, 
+      categoryCode: document.getElementById('catCode').value.trim() || null 
+    })
+  });
+  
+  document.getElementById('catName').value = '';
+  document.getElementById('catCode').value = '';
+  toast('分类新增成功', 'success');
+  loadCategories();
+}
+
+async function renameCategory(id, old) {
+  showConfirm({
+    title: '重命名分类',
+    body: '',  // 有输入框时不显示说明文字
+    okText: '保存',
+    input: { value: old, placeholder: '请输入新的分类名称' }
+  }, async (name) => {
+    if (!name || name === old) return;
+    try {
+      await api(`/api/knowledge/category/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ categoryName: name })
+      });
+      toast(`分类名称已修改为"${name}"`, 'success');
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+    loadCategories();
+  });
+}
+
+async function delCategory(id, name) {
+  // 前端不做确认拦截，删除校验由接口负责；失败时红色 toast 展示 res.msg
+  try {
+    await api(`/api/knowledge/category/${id}`, { method: 'DELETE' });
+    toast(`名称为"${name}"的分类已删除`, 'success');
+    loadCategories();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+
+// ========== 文档上传 ==========
+async function upload() {
+  const files = selectedFiles.length ? selectedFiles : Array.from(document.getElementById('fileInput').files);
+  if (!files.length) return toast('请先选择要上传的文件');
+  
+  const form = new FormData();
+  for (const f of files) form.append('files', f);
+  
+  const categoryId = document.getElementById('uploadCategory').value;
+  if (categoryId) form.append('categoryId', categoryId);
+  
+  const tags = document.getElementById('uploadTags').value.trim();
+  if (tags) form.append('tags', tags);
+  
+  const btn = document.getElementById('uploadBtn');
+  const progress = document.getElementById('uploadProgress');
+  btn.disabled = true;
+  progress.textContent = `上传中（${files.length} 个文件）...`;
+  
+  try {
+    await api('/api/knowledge/document', { method: 'POST', body: form });
+    toast('上传成功，后台正在进行向量化处理', 'success');
+    selectedFiles = [];
+    document.getElementById('fileInput').value = '';
+    renderFileList();
+    loadDocs(1);
+  } catch (e) {
+    toast('上传失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; 
+    progress.textContent = '';
+  }
+}
+
+// 重置搜索条件并重新加载列表
+function resetFilters() {
+  document.getElementById('filterCategory').value = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('keyword').value = '';
+  loadDocs(1);
+}
+
+// ========== 文档列表 ==========
+let currentPage = 1, totalPages = 1;
+let statusTimer = null;
+
+async function loadDocs(page) {
+  currentPage = page || currentPage;
+  const params = new URLSearchParams({ current: currentPage, size: 10 });
+  
+  const kw = document.getElementById('keyword').value.trim();
+  const cat = document.getElementById('filterCategory').value;
+  const st = document.getElementById('filterStatus').value;
+  
+  if (kw) params.append('keyword', kw);
+  if (cat) params.append('categoryId', cat);
+  if (st) params.append('vectorStatus', st);
+  
+  const pageData = await api('/api/knowledge/document/list?' + params.toString());
+  totalPages = pageData.pages;
+  renderDocs(pageData.records || []);
+  
+  document.getElementById('pager').innerHTML =
+    `<button class="btn outline" ${currentPage <= 1 ? 'disabled' : ''} onclick="loadDocs(${currentPage - 1})">上一页</button>
+     第 ${pageData.current} / ${pageData.pages} 页（共 ${pageData.total} 篇）
+     <button class="btn outline" ${currentPage >= totalPages ? 'disabled' : ''} onclick="loadDocs(${currentPage + 1})">下一页</button>`;
+  
+  // 存在处理中文档时 5 秒轮询刷新
+  const processing = (pageData.records || []).some(d => d.vectorStatus === 1);
+  clearTimeout(statusTimer);
+  if (processing) {
+    statusTimer = setTimeout(() => loadDocs(), 5000);
+  }
+}
+
+function renderDocs(records) {
+  const tbody = document.getElementById('docTbody');
+  if (!records.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">暂无文档，点击上方上传按钮添加你的第一份文档吧</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = records.map(d => `
+    <tr>
+      <td><input type="checkbox" class="doc-check" value="${d.id}"></td>
+      <td title="${d.title}">
+        ${escapeHtml(d.title)}
+        <div style="color:#aaa;font-size:12px; margin-top: 2px;">${escapeHtml(d.originalFileName || '')}</div>
+      </td>
+      <td>${escapeHtml(d.categoryName || '-')}</td>
+      <td>${d.fileSizeFormatted || '-'}</td>
+      <td>
+        <span class="tag s${d.vectorStatus}">${d.vectorStatusText}</span>
+        ${d.vectorStatus === 3 
+          ? `<div style="color:#e74c3c;font-size:11px; margin-top:4px;" title="${escapeHtml(d.vectorError || '')}">
+              ${escapeHtml((d.vectorError || '').substring(0, 40))}
+            </div>` 
+          : ''}
+      </td>
+      <td>${d.vectorCount ?? '-'}</td>
+      <td>${d.createTime || '-'}</td>
+      <td>
+        <a class="btn gray" style="text-decoration:none;padding:4px 10px; margin-right:4px;" target="_blank"
+           href="/api/knowledge/document/${d.id}/preview?token=${encodeURIComponent(TOKEN)}">预览</a>
+        <button class="btn red" style="padding:4px 10px" onclick="delDoc(${d.id})">删除</button>
+      </td>
+    </tr>`).join('');
+}
+
+function toggleAll(el) {
+  document.querySelectorAll('.doc-check').forEach(c => c.checked = el.checked);
+}
+
+async function delDoc(id) {
+  showConfirm({
+    title: '删除文档',
+    body: '确定要删除这篇文档吗？原文件和向量数据都会被一并删除。',
+    okText: '删除',
+    danger: true
+  }, async () => {
+    await api(`/api/knowledge/document/${id}`, { method: 'DELETE' });
+    toast('文档已删除', 'success');
+    loadDocs();
+  });
+}
+
+async function batchDelete() {
+  const ids = [...document.querySelectorAll('.doc-check:checked')].map(c => Number(c.value));
+  if (!ids.length) return toast('请先勾选要删除的文档');
+  showConfirm({
+    title: '批量删除',
+    body: `确定要删除选中的 ${ids.length} 篇文档吗？`,
+    okText: '删除',
+    danger: true
+  }, async () => {
+    await api('/api/knowledge/document/batch-delete', { 
+      method: 'POST', 
+      body: JSON.stringify({ ids }) 
+    });
+    toast('批量删除成功', 'success');
+    loadDocs(1);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+loadCategories();
+loadDocs(1);
+</script>
+</body>
+</html>

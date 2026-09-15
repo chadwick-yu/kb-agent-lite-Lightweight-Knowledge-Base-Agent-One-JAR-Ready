@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>kb-agent-lite</title>
+    <script>
+        // 入口页：已登录直达对话，未登录去登录页
+        location.replace(localStorage.getItem('kb_token') ? 'chat.html' : 'login.html');
+    </script>
+</head>
+<body>
+<p style="font-family:sans-serif;color:#888;padding:40px">正在跳转… <a href="login.html">手动进入</a></p>
+</body>
+</html>

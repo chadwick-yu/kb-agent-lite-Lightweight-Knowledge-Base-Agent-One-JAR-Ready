@@ -1,0 +1,75 @@
+# ============================================================
+# kb-agent-lite 部署配置模板
+#
+# 使用方法（客户部署三步）：
+#   1. 将本文件复制到 jar 同目录，改名为 application.yml
+#   2. 修改下方 llm.api-key（以及按需修改 base-url / model-name 接入自有模型）
+#   3. 启动： java -Xms512m -Xmx2g -jar kb-agent-lite.jar
+#
+# 配置优先级（高 → 低）：
+#   命令行参数 / 环境变量 > jar旁 config/application.yml > jar旁 application.yml > jar内默认值
+#   即：本文件写了的项生效，没写的项沿用默认值
+# ============================================================
+
+# ==================== 一、大模型接入（必配） ====================
+# 标准：OpenAI 兼容协议（/v1/chat/completions）。公有云、私有化推理服务均适用。
+# 只需改 base-url / api-key / model-name 三项，代码零改动。
+llm:
+  # 模型服务地址（OpenAI 兼容接口，含 /v1）
+  base-url: https://api.deepseek.com/v1
+  # API 密钥（私有化服务如 vLLM 无鉴权时填任意非空字符串）
+  api-key: please-fill-your-api-key
+  # 模型名称（与服务端部署名一致）
+  model-name: deepseek-chat
+  # ===== 以下为可调参数，保持默认即可 =====
+  temperature: 0.2          # 回答随机度，知识库问答建议 0.2 以下
+  max-tokens: 4000          # 单次回答最大长度
+  timeout-seconds: 60       # 模型调用超时（秒）
+
+# ---------- 各厂商接入示例（直接替换上面三项即可） ----------
+# DeepSeek（公有云）:
+#   base-url: https://api.deepseek.com/v1              model-name: deepseek-chat
+# 通义千问（公有云, 百炼 OpenAI 兼容模式）:
+#   base-url: https://dashscope.aliyuncs.com/compatible-mode/v1   model-name: qwen-plus
+# 智谱（公有云）:
+#   base-url: https://open.bigmodel.cn/api/paas/v4     model-name: glm-4-air
+# 月之暗面 Kimi（公有云）:
+#   base-url: https://api.moonshot.cn/v1               model-name: moonshot-v1-8k
+# vLLM（私有化，模型名=部署时的 served-model-name）:
+#   base-url: http://<推理机IP>:8000/v1                 model-name: qwen2.5-14b-instruct
+# Ollama（私有化，需先 ollama pull 模型）:
+#   base-url: http://<推理机IP>:11434/v1                model-name: qwen2.5:14b
+# Xinference / FastChat（私有化）:
+#   同 vLLM 格式，替换 IP:端口 与模型名即可
+
+# ==================== 二、访问控制（上线必改） ====================
+app:
+  # 运行时数据目录（H2库/上传文档/向量文件全部在此，备份=拷贝此目录）
+  data-dir: ./data
+  auth:
+    # 登录口令，默认 admin123，部署给客户时必须修改
+    password: please-change-this-password
+    # token 签名密钥，默认值仅供开发，必须修改（修改后用户需重新登录）
+    token-secret: please-change-this-secret
+    token-expire-hours: 72
+    # 置为 false 可关闭鉴权（仅限完全隔离的内网环境）
+    enabled: true
+
+# ==================== 三、服务参数（按需） ====================
+server:
+  port: 8090
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB       # 单文件上传上限
+      max-request-size: 200MB
+
+# ==================== 四、知识库调优（按需，保持默认即可） ====================
+knowledge:
+  chunk:
+    size: 450         # 切分块大小（字符），匹配 bge-small-zh 512 token 输入上限（中文≈1字1token）
+    overlap: 80       # 相邻块重叠
+  rag:
+    min-score: 0.5    # 引用相似度阈值（0~1），回答页可见每条引用分数，可据此微调
+    recall-expand-factor: 5
