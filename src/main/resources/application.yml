@@ -55,6 +55,11 @@ llm:
   timeout-seconds: 60
 
 knowledge:
+  upload:
+    # 知识库总容量配额（MB）：所有文档原始文件累计超过此值将拒绝上传，0=不限
+    total-size-mb: 2048
+    # 文档数量上限，0=不限
+    max-doc-count: 0
   chunk:
     # 切分块大小（字符）。bge-small-zh-v1.5 输入上限 512 token（中文≈1字1token），
     # 块大小必须 ≤450 字符左右，否则块尾部会被截断导致检索漏召回

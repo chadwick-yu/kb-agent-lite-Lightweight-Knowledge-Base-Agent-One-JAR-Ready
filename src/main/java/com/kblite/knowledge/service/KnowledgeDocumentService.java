@@ -46,4 +46,9 @@ public interface KnowledgeDocumentService extends IService<KnowledgeDocument> {
      * 查询所有标签（去重）
      */
     List<String> getAllTags();
+
+    /**
+     * 查询存储配额使用情况（已用/上限/文档数）
+     */
+    java.util.Map<String, Object> getStorageQuota();
 }

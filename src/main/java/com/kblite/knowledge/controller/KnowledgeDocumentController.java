@@ -109,6 +109,14 @@ public class KnowledgeDocumentController {
     }
 
     /**
+     * 存储配额查询（已用/上限/文档数）
+     */
+    @GetMapping("/quota")
+    public ApiResult<Map<String, Object>> quota() {
+        return ApiResult.ok(knowledgeDocumentService.getStorageQuota());
+    }
+
+    /**
      * 所有标签（去重）
      */
     @GetMapping("/tags")

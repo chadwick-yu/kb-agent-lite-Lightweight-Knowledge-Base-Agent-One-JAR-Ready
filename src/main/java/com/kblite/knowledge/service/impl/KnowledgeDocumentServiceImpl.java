@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.kblite.knowledge.entity.KnowledgeCategory;
+import com.kblite.config.KnowledgeProperties;
 import com.kblite.knowledge.entity.KnowledgeDocument;
 import com.kblite.knowledge.exception.DocumentNotFoundException;
 import com.kblite.knowledge.mapper.KnowledgeCategoryMapper;
@@ -35,6 +36,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
+ * 知识库文档服务实现
  *
  * @author kb-agent-lite
  */
@@ -47,6 +49,7 @@ public class KnowledgeDocumentServiceImpl extends ServiceImpl<KnowledgeDocumentM
     private static final String DEFAULT_USER = "admin";
     private static final int MAX_PAGE_SIZE = 100;
 
+    private final KnowledgeProperties knowledgeProperties;
     private final VectorStoreService vectorStoreService;
     private final LocalFileStorage localFileStorage;
     private final KnowledgeCategoryMapper categoryMapper;
@@ -57,9 +60,10 @@ public class KnowledgeDocumentServiceImpl extends ServiceImpl<KnowledgeDocumentM
     @Transactional(rollbackFor = Exception.class)
     public KnowledgeDocument createDocumentWithUpload(MultipartFile file, String categoryId,
                                                       String title, String remark, String tags) {
-        // 1. 校验
+        // 1. 校验（格式 / 单文件大小 / 总量配额）
         documentParseService.validateFileType(file);
         documentParseService.validateFileSize(file);
+        checkUploadQuota(file.getSize());
 
         // 2. 查询真实分类名称（用于向量元数据展示）
         String realCategoryName = "KNOWLEDGE";
@@ -199,6 +203,50 @@ public class KnowledgeDocumentServiceImpl extends ServiceImpl<KnowledgeDocumentM
             throw new BizException("文档尚未上传，无法预览");
         }
         return localFileStorage.open(document.getFilePath());
+    }
+
+    /**
+     * 上传总量配额校验：已用空间 + 待传文件 超过上限则拒绝
+     */
+    private void checkUploadQuota(long incomingSize) {
+        com.kblite.config.KnowledgeProperties.Upload up = knowledgeProperties.getUpload();
+        if (up.getMaxDocCount() > 0) {
+            long count = lambdaQuery().eq(KnowledgeDocument::getStatus, 1).count();
+            if (count >= up.getMaxDocCount()) {
+                throw new IllegalArgumentException(String.format(
+                        "知识库文档数量已达上限（%d/%d 篇），请先删除部分文档再上传",
+                        count, up.getMaxDocCount()));
+            }
+        }
+        if (up.getTotalSizeMb() > 0) {
+            long usedBytes = currentUsedBytes();
+            long quotaBytes = up.getTotalSizeMb() * 1024L * 1024L;
+            if (usedBytes + incomingSize > quotaBytes) {
+                throw new IllegalArgumentException(String.format(
+                        "知识库总容量已达上限：已用 %.1fMB / 上限 %dMB，本次需 %.1fMB，请先删除部分文档再上传",
+                        usedBytes / 1024.0 / 1024.0, up.getTotalSizeMb(), incomingSize / 1024.0 / 1024.0));
+            }
+        }
+    }
+
+    private long currentUsedBytes() {
+        List<KnowledgeDocument> docs = lambdaQuery()
+                .eq(KnowledgeDocument::getStatus, 1)
+                .select(KnowledgeDocument::getFileSize)
+                .list();
+        return docs.stream().mapToLong(d -> d.getFileSize() == null ? 0L : d.getFileSize()).sum();
+    }
+
+    @Override
+    public Map<String, Object> getStorageQuota() {
+        com.kblite.config.KnowledgeProperties.Upload up = knowledgeProperties.getUpload();
+        long usedBytes = currentUsedBytes();
+        Map<String, Object> m = new java.util.LinkedHashMap<>();
+        m.put("usedBytes", usedBytes);
+        m.put("quotaBytes", up.getTotalSizeMb() > 0 ? up.getTotalSizeMb() * 1024L * 1024L : 0);
+        m.put("docCount", lambdaQuery().eq(KnowledgeDocument::getStatus, 1).count());
+        m.put("maxDocCount", up.getMaxDocCount());
+        return m;
     }
 
     @Override

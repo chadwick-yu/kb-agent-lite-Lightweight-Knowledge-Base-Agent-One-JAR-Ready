@@ -141,7 +141,15 @@ POST /api/knowledge/document/batch-delete
 {"ids": [1, 2, 3]}
 ```
 
-### 3.6 标签列表（去重）
+### 3.6 存储配额查询
+
+```
+GET /api/knowledge/document/quota
+```
+
+响应 `data`：`{usedBytes, quotaBytes, docCount, maxDocCount}`（quotaBytes/maxDocCount 为 0 表示不限）。可用于前端展示"已用 X MB / 总配额 Y MB"。
+
+### 3.7 标签列表（去重）
 
 ```
 GET /api/knowledge/document/tags

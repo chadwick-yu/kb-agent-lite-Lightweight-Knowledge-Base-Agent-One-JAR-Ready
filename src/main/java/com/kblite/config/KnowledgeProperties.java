@@ -17,6 +17,16 @@ public class KnowledgeProperties {
     private final Chunk chunk = new Chunk();
     private final Batch batch = new Batch();
     private final Rag rag = new Rag();
+    private final Upload upload = new Upload();
+
+    /** 上传总量配额配置 */
+    @Data
+    public static class Upload {
+        /** 知识库原始文件总大小上限（MB），0=不限 */
+        private long totalSizeMb = 2048;
+        /** 文档数量上限，0=不限 */
+        private int maxDocCount = 0;
+    }
 
     @Data
     public static class Chunk {

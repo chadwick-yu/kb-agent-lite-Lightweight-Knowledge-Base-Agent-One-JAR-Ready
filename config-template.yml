@@ -67,6 +67,11 @@ spring:
 
 # ==================== 四、知识库调优（按需，保持默认即可） ====================
 knowledge:
+  upload:
+    # 知识库总容量配额（MB）：所有文档原始文件累计超过此值将拒绝上传，0=不限
+    total-size-mb: 2048
+    # 文档数量上限，0=不限
+    max-doc-count: 0
   chunk:
     size: 450         # 切分块大小（字符），匹配 bge-small-zh 512 token 输入上限（中文≈1字1token）
     overlap: 80       # 相邻块重叠
